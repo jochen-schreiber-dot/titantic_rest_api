@@ -30,7 +30,7 @@ def get_alives(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
 
 @app.get("/alives/{alive_id}", response_model=AliveModel)
 def get_alive(alive_id: int, db: Session = Depends(get_db)):
-    logger.success("alives endpoint hit with id " + alive_id)
+    logger.success("alives endpoint hit with id " + str(alive_id))
     alive = db.query(Alive).filter(Alive.alive_id == alive_id).first()
     if alive is None:
         raise HTTPException(status_code=404, detail="Alive not found")
