@@ -1,12 +1,16 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
+from fastapi.responses import JSONResponse
 from typing import List
 from lib.classes import *
 from lib.database import get_db
 from loguru import logger
 
+import sqlite3
+import pandas as pd
+
 app = FastAPI()
-logger.add("titanic_api.log", rotation="12:00")
+logger.add("../titanic_api.log", rotation="12:00")
 
 @app.get("/")
 def get_root_message():
@@ -117,22 +121,37 @@ def get_embarked(embarked_id: int, db: Session = Depends(get_db)):
 # OBSERVATION ENDPOINTS
 #
 ####################
+
+@app.get("/obs", response_model=List[ObservationModel])
+def get_obs():
+    conn = sqlite3.connect('../data/titanic.db')
+    cursor = conn.cursor()
+    df = pd.read_sql_query("SELECT * FROM observation", conn)
+    logger.success("obs endpoint hit")
+    logger.success(len(df))
+    json_data = df.to_json(orient='records')
+    return JSONResponse(content=json_data)
+
 @app.get("/observations", response_model=List[ObservationModel])
-def get_observations(skip: int = 0, limit: int = 1000, db: Session = Depends(get_db)):
+def get_observations(skip: int = 0, limit: int = 2000, db: Session = Depends(get_db)):
     logger.success("observations endpoint hit")
-    observations = db.query(Observation).offset(skip).limit(limit).all()
-    return observations
+    logger.success(len(db.query(Observation).all()))
+    return db.query(Observation).all()
+    #return observations
 
 @app.post("/observations", response_model=ObservationModel)
 def create_observation(observation: ObservationModel, db: Session = Depends(get_db)):
     logger.success("observations endpoint hit with post")
-    observation_obj = Observation(**observation.dict())
-    logger.success(observation_obj.survived)
-    db.add(observation_obj)
-    db.commit()
-    db.refresh(observation_obj)
-    db.close()
-    return observation_obj
+    try:
+        observation_obj = Observation(**observation.dict())
+        db.add(observation_obj)
+        db.commit()
+        db.refresh(observation_obj)
+        return observation_obj
+    except Exception as e:
+       return {"message": "Error {}".format(e)}
+    finally:
+        db.close()
 
 ####################
 #
