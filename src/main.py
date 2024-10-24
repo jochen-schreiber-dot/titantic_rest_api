@@ -122,7 +122,7 @@ def get_embarked(embarked_id: int, db: Session = Depends(get_db)):
 #
 ####################
 
-@app.get("/obs", response_model=List[ObservationModel])
+@app.get("/observations_all", response_model=List[ObservationModel])
 def get_obs():
     conn = sqlite3.connect('../data/titanic.db')
     cursor = conn.cursor()
